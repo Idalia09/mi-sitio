@@ -1,59 +1,331 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+
+    <title>Mi sitio - Supabase</title>
+
     <link rel="stylesheet" href="estilos.css">
 </head>
+
 <body>
+
+    <!-- MENÚ DE NAVEGACIÓN -->
     <nav>
         <a href="index.html">Inicio</a>
         <a href="catalogo.html">Catálogo</a>
         <a href="acerca.html">Acerca</a>
     </nav>
-    <h1>Acerca de mi</h1>
-    <p>Hola, soy Idalia de los santos de la cruz. Esta es mi pagina de inicio.</p>
-    
-   <script>
+
+    <h1>Bienvenida a mi sitio</h1>
+
+    <p>Hola, soy Idalia de los Santos de la Cruz.</p>
+
+    <hr>
+
+    <!-- FORMULARIO DE AUTENTICACIÓN -->
+    <section id="autenticacion">
+
+        <h2>Bienvenido al portal</h2>
+
+        <h3>Crear cuenta</h3>
+
+        <input
+            type="email"
+            id="email"
+            placeholder="Correo electrónico"
+        >
+
+        <input
+            type="password"
+            id="pass"
+            placeholder="Contraseña"
+        >
+
+        <button onclick="registrar()">
+            Registrarse
+        </button>
+
+        <hr>
+
+        <h3>Iniciar sesión</h3>
+
+        <button onclick="entrar()">
+            Iniciar sesión
+        </button>
+
+        <p id="m1"></p>
+
+    </section>
+
+    <!-- PANEL PRINCIPAL -->
+    <section id="app" hidden>
+
+        <h2>Panel principal</h2>
+
+        <p>Has iniciado sesión correctamente.</p>
+
+        <p>
+            Usuario conectado:
+            <strong id="correoUsuario"></strong>
+        </p>
+
+        <hr>
+
+        <h3>Registrar una solicitud</h3>
+
+        <input
+            type="text"
+            id="titulo"
+            placeholder="Título de la solicitud"
+        >
+
+        <input
+            type="number"
+            id="monto"
+            placeholder="Monto"
+            min="0"
+            step="0.01"
+        >
+
+        <button onclick="crearSolicitud()">
+            Guardar solicitud
+        </button>
+
+        <p id="m2"></p>
+
+        <hr>
+
+        <button onclick="salir()">
+            Cerrar sesión
+        </button>
+
+    </section>
+
+
+    <!-- CONEXIÓN CON SUPABASE -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script src="supabase-config.js"></script>
+
+
+    <!-- FUNCIONES JAVASCRIPT -->
+    <script>
+
+        // Obtener valores de los campos
+        function val(id) {
+            return document.getElementById(id).value.trim();
+        }
+
+
+        // Mostrar mensajes
+        function msg(id, texto, correcto) {
+
+            const elemento = document.getElementById(id);
+
+            elemento.textContent = texto;
+
+            elemento.style.color = correcto
+                ? "green"
+                : "red";
+        }
+
+
+        // Registrar una cuenta
         async function registrar() {
-            const { error } = await supabase.auth.signUp({
-                email: val('email'),
-                password: val('pass')
+
+            const email = val('email');
+            const password = val('pass');
+
+            if (!email || !password) {
+                return msg(
+                    'm1',
+                    'Completa el correo y la contraseña.',
+                    false
+                );
+            }
+
+            const { error } = await supabaseClient.auth.signUp({
+                email: email,
+                password: password
             });
 
             if (error) {
-                return msg('m1', 'Error: ' + error.message, false);
+                return msg(
+                    'm1',
+                    'Error: ' + error.message,
+                    false
+                );
             }
 
-            msg('m1', 'Cuenta creada. Ya puedes iniciar sesión.', true);
+            msg(
+                'm1',
+                'Cuenta creada. Ya puedes iniciar sesión.',
+                true
+            );
         }
 
+
+        // Iniciar sesión
         async function entrar() {
-            const { error } = await supabase.auth.signInWithPassword({
-                email: val('email'),
-                password: val('pass')
-            });
 
-            if (error) {
-                return msg('m1', 'Credenciales incorrectas', false);
+            const email = val('email');
+            const password = val('pass');
+
+            if (!email || !password) {
+                return msg(
+                    'm1',
+                    'Ingresa tu correo y contraseña.',
+                    false
+                );
             }
 
-            mostrarApp();
+            const { error } =
+                await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+            if (error) {
+                return msg(
+                    'm1',
+                    'Credenciales incorrectas: ' + error.message,
+                    false
+                );
+            }
+
+            await mostrarApp();
         }
 
-       
-(async () => {
-    const { data: { session } } =
-        await supabase.auth.getSession();
 
-    if (session) {
-        mostrarApp();
-    }
-})();
+        // Mostrar el panel principal
+        async function mostrarApp() {
+
+            const { data, error } =
+                await supabaseClient.auth.getUser();
+
+            if (error || !data.user) {
+                return;
+            }
+
+            document.getElementById('autenticacion').hidden = true;
+
+            document.getElementById('app').hidden = false;
+
+            document.getElementById('correoUsuario').textContent =
+                data.user.email;
+        }
+
+
+        // Crear una solicitud
+        async function crearSolicitud() {
+
+            const titulo = val('titulo');
+
+            const monto = val('monto');
+
+            if (!titulo || !monto) {
+                return msg(
+                    'm2',
+                    'Completa todos los campos.',
+                    false
+                );
+            }
+
+            if (Number(monto) < 0) {
+                return msg(
+                    'm2',
+                    'El monto no puede ser negativo.',
+                    false
+                );
+            }
+
+            const { data: { user }, error: userError } =
+                await supabaseClient.auth.getUser();
+
+            if (userError || !user) {
+                return msg(
+                    'm2',
+                    'Debes iniciar sesión nuevamente.',
+                    false
+                );
+            }
+
+            const { error } = await supabaseClient
+                .from('solicitudes')
+                .insert({
+                    titulo: titulo,
+                    monto: Number(monto),
+                    usuario_email: user.email
+                });
+
+            if (error) {
+                return msg(
+                    'm2',
+                    'Error al guardar: ' + error.message,
+                    false
+                );
+            }
+
+            msg(
+                'm2',
+                'Solicitud guardada correctamente.',
+                true
+            );
+
+            document.getElementById('titulo').value = '';
+            document.getElementById('monto').value = '';
+        }
+
+
+        // Cerrar sesión
+        async function salir() {
+
+            const { error } =
+                await supabaseClient.auth.signOut();
+
+            if (error) {
+                return alert('Error al cerrar sesión: ' + error.message);
+            }
+
+            document.getElementById('app').hidden = true;
+
+            document.getElementById('autenticacion').hidden = false;
+
+            document.getElementById('email').value = '';
+
+            document.getElementById('pass').value = '';
+
+            msg(
+                'm1',
+                'Has cerrado sesión correctamente.',
+                true
+            );
+        }
+
+
+        // Comprobar si existe una sesión al cargar
+        (async function () {
+
+            const { data: { session }, error } =
+                await supabaseClient.auth.getSession();
+
+            if (error) {
+                console.error(error);
+                return;
+            }
+
+            if (session) {
+                await mostrarApp();
+            }
+
+        })();
+
     </script>
 
-    
-    
 </body>
 </html>
+
