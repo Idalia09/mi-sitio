@@ -12,8 +12,36 @@
         <a href="catalogo.html">Catálogo</a>
         <a href="acerca.html">Acerca</a>
     </nav>
-    <h1>Mi primer sitio web</h1>
-    <p>Hola, soy Idalia. Esta es mi pagina de inicio.</p>
+    <h1>Acerca de mi</h1>
+    <p>Hola, soy Idalia de los santos de la cruz. Esta es mi pagina de inicio.</p>
+    
+   <script>
+        async function registrar() {
+            const { error } = await supabase.auth.signUp({
+                email: val('email'),
+                password: val('pass')
+            });
+
+            if (error) {
+                return msg('m1', 'Error: ' + error.message, false);
+            }
+
+            msg('m1', 'Cuenta creada. Ya puedes iniciar sesión.', true);
+        }
+
+        async function entrar() {
+            const { error } = await supabase.auth.signInWithPassword({
+                email: val('email'),
+                password: val('pass')
+            });
+
+            if (error) {
+                return msg('m1', 'Credenciales incorrectas', false);
+            }
+
+            mostrarApp();
+        }
+    </script>
     
 </body>
 </html>
