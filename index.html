@@ -41,7 +41,19 @@
 
             mostrarApp();
         }
+
+       
+(async () => {
+    const { data: { session } } =
+        await supabase.auth.getSession();
+
+    if (session) {
+        mostrarApp();
+    }
+})();
     </script>
+
+    
     
 </body>
 </html>
